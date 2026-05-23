@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{.Room.Name}} · Adventures in HTMX and Go</title>
+    <style>
+      body { font-family: sans-serif; max-width: 700px; margin: 2rem auto; padding: 1rem; }
+      .room { border: 2px solid #333; padding: 20px; border-radius: 8px; }
+      .exits { list-style: none; padding: 0; }
+      .exits li { margin: 10px 0; }
+      a { background: #eee; text-decoration: none; padding: 5px 10px; border: 1px solid #ccc; color: black; }
+      a:hover { background: #ddd; }
+    </style>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
+      integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz"
+      crossorigin="anonymous">
+    </script>
+  </head>
+
+  <body hx-boost="true">
+    <div class="room">
+      <h1>{{.Room.Name}}</h1>
+      <p>{{.Room.Description}}</p>
+
+      <h2>Exits</h2>
+      <ul class="exits">
+        {{range .Room.Exits}}
+          <li>
+             <a href="/room/{{.To}}">{{.Label}}</a>
+          </li>
+        {{else}}
+          <li>(There are no exits. You are trapped.)</li>
+        {{end}}
+      </ul>
+    </div>
+  </body>
+</html>
