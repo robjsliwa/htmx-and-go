@@ -10,13 +10,15 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 |------|-------|------|
 | 1 | Server setup, Go templates, hypermedia architecture | [Adventures in Go and HTMX - Part 1](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-1/) |
 | 2 | HTMX `hx-boost` for SPA-like navigation | [Adventures in Go and HTMX - Part 2](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-2/) |
+| 3 | Form input, HTMX fragment-swapping, auto-reset, view transitions | [Adventures in Go and HTMX - Part 3](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-3/) |
 
 ## Repository Structure
 
 ```
 htmx-and-go/
 ├── part1/adv-htmx/    # Part 1 — basic server + Go templates (full page reloads)
-└── part2/adv-htmx/    # Part 2 — adds hx-boost for smooth navigation
+├── part2/adv-htmx/    # Part 2 — adds hx-boost for smooth navigation
+└── part3/adv-htmx/    # Part 3 — form input, fragment-swapping, view transitions
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -37,7 +39,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx or part3/adv-htmx
 go run .
 ```
 
@@ -47,7 +49,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx or part3/adv-htmx
 air
 ```
 
