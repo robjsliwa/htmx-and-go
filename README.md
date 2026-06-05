@@ -11,6 +11,7 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 | 1 | Server setup, Go templates, hypermedia architecture | [Adventures in Go and HTMX - Part 1](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-1/) |
 | 2 | HTMX `hx-boost` for SPA-like navigation | [Adventures in Go and HTMX - Part 2](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-2/) |
 | 3 | Form input, HTMX fragment-swapping, auto-reset, view transitions | [Adventures in Go and HTMX - Part 3](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-3/) |
+| 4 | Inventory system, `hx-delete`, out-of-band swaps (`hx-swap-oob`), modular package refactor | [Adventures in Go and HTMX - Part 4](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-4/) |
 
 ## Repository Structure
 
@@ -18,7 +19,8 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 htmx-and-go/
 ├── part1/adv-htmx/    # Part 1 — basic server + Go templates (full page reloads)
 ├── part2/adv-htmx/    # Part 2 — adds hx-boost for smooth navigation
-└── part3/adv-htmx/    # Part 3 — form input, fragment-swapping, view transitions
+├── part3/adv-htmx/    # Part 3 — form input, fragment-swapping, view transitions
+└── part4/adv-htmx/    # Part 4 — inventory system, hx-delete, out-of-band swaps, modular packages
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -39,7 +41,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx or part3/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx
 go run .
 ```
 
@@ -49,7 +51,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx or part3/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx
 air
 ```
 
@@ -59,6 +61,8 @@ air
 - **Go 1.22 routing** — typed path parameters with `r.PathValue()`
 - **`hx-boost`** — progressively enhances standard links to use AJAX, keeping full-page fallback when JS is unavailable
 - **Server-driven state** — no client-side state management; rooms and game state live on the server
+- **`hx-swap-oob`** — out-of-band swaps let a single server response update multiple independent regions of the page
+- **`hx-delete`** — maps HTTP DELETE to HTMX-powered removal of elements without page reloads
 
 ## License
 

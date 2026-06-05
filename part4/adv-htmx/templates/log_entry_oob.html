@@ -1,0 +1,8 @@
+{{define "logEntryOOB"}}
+  <div class="log-entry {{.Kind}}" hx-swap-oob="beforeend:#log">
+    {{if .Command}}
+      <div class="prompt">&gt; {{.Command}}</div>
+    {{end}}
+    <div class="output">{{.Output}}</div>
+  </div>
+{{end}}

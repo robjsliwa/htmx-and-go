@@ -1,0 +1,34 @@
+{{define "inventoryList"}}
+<ul id="inventory-list" class="inv-list"{{if .OOB}} hx-swap-oob="true"{{end}}>{{- range .Inventory -}}
+  <li class="inv-item">
+    <span class="item-name">{{.Name}}</span>
+    <form
+        class="inline"
+        action="/drop/{{.ID}}" method="post"
+        hx-boost="false"
+        hx-delete="/inventory/{{.ID}}"
+        hx-trigger="submit"
+        hx-target="closest li"
+        hx-swap="outerHTML">
+        <button type="submit" class="mini">Drop</button>
+    </form>
+  </li>
+{{- end -}}</ul>
+{{end}}
+
+{{define "roomItemsList"}}
+<ul id="room-items-list" class="items-list"{{if .OOB}} hx-swap-oob="true"{{end}}>{{- range .ItemsHere -}}
+  <li class="room-item">
+    <span class="item-name">{{.Name}}</span>
+    <form
+        class="inline"
+        action="/take/{{.ID}}" method="post"
+        hx-boost="false"
+        hx-post="/take/{{.ID}}"
+        hx-target="#log"
+        hx-swap="beforeend scroll:bottom">
+        <button type="submit" class="mini">Take</button>
+    </form>
+  </li>
+{{- end -}}</ul>
+{{end}}

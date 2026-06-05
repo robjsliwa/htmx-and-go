@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{.Room.Name}} · Adventures in HTMX and Go</title>
+    <style>
+      body { font-family: sans-serif; max-width: 980px; margin: 2rem auto; padding: 1rem; }
+
+      .room {
+        border: 2px solid #333;
+        padding: 20px;
+        border-radius: 8px;
+        view-transition-name: room;
+      }
+
+      .layout {
+        display: flex;
+        gap: 1.25rem;
+        align-items: flex-start;
+      }
+
+      .main { flex: 1; min-width: 0; }
+      .sidebar {
+        width: 260px;
+        border-left: 1px solid #ddd;
+        padding-left: 1rem;
+      }
+
+      @media (max-width: 900px) {
+        body { max-width: 760px; }
+        .layout { flex-direction: column; }
+        .sidebar { width: auto; border-left: none; padding-left: 0; border-top: 1px solid #ddd; padding-top: 1rem; }
+      }
+
+      .exits { list-style: none; padding: 0; }
+      .exits li { margin: 10px 0; }
+
+      a { background: #eee; text-decoration: none; padding: 5px 10px; border: 1px solid #ccc; color: black; }
+      a:hover { background: #ddd; }
+
+      .items-list,
+      .inv-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+      }
+
+      .items-list:empty::before { content: "(Nothing here.)"; color: #777; display: block; padding: 0.25rem 0; }
+      .inv-list:empty::before { content: "(Empty.)"; color: #777; display: block; padding: 0.25rem 0; }
+
+      .room-item,
+      .inv-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.35rem 0;
+        border-bottom: 1px dashed #ddd;
+      }
+
+      .item-name { font-weight: 600; }
+      .inline { margin: 0; }
+
+      .mini {
+        padding: 0.35rem 0.6rem;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        background: #eee;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      /* Log + prompt (from Chapter 3) */
+      .log {
+        margin-top: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 0.75rem;
+        height: 220px;
+        overflow-y: auto;
+        background: #111;
+        color: #eee;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 0.95rem;
+        line-height: 1.35;
+      }
+
+      .log-entry {
+        margin: 0 0 0.75rem 0;
+        opacity: 0;
+        transform: translateY(2px);
+        animation: log-fade-in 140ms ease-out forwards;
+      }
+
+      @keyframes log-fade-in {
+        to { opacity: 1; transform: none; }
+      }
+
+      .log-entry .prompt { color: #bbb; margin-bottom: 0.15rem; }
+      .log-entry .output { white-space: pre-wrap; }
+      .log-entry.error .output { color: #ff8a8a; }
+      .log-entry.system .output { color: #b6e3ff; }
+
+      .command {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .command input[type="text"] {
+        flex: 1;
+        padding: 0.6rem 0.7rem;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        font: inherit;
+      }
+
+      .command button {
+        padding: 0.6rem 0.9rem;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        background: #eee;
+        cursor: pointer;
+      }
+
+      /* View Transitions (from Chapter 3) */
+      @keyframes vt-fade-out { to { opacity: 0; transform: translateY(-2px); } }
+      @keyframes vt-fade-in  { from { opacity: 0; transform: translateY(2px); } }
+
+      ::view-transition-old(room) { animation: 120ms ease-out both vt-fade-out; }
+      ::view-transition-new(room) { animation: 160ms ease-out both vt-fade-in; }
+    </style>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
+      integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz"
+      crossorigin="anonymous">
+    </script>
+  </head>
+
+  <body hx-boost="true" hx-swap="innerHTML transition:true">
+    <div class="room">
+      <div class="layout">
+        <main class="main">
+          <h1>{{.Room.Name}}</h1>
+          <p>{{.Room.Description}}</p>
+
+          <h2>Exits</h2>
+          <ul class="exits">
+            {{range .Room.Exits}}
+              <li>
+                <a href="/room/{{.To}}">{{.Label}}</a>
+              </li>
+            {{else}}
+              <li>(There are no exits. You are trapped.)</li>
+            {{end}}
+          </ul>
+
+          <h2>Items Here</h2>
+          {{template "roomItemsList" .}}
+          
+          <h2>Game Log</h2>
+          <div id="log" class="log" aria-live="polite" aria-relevant="additions text">
+            {{range .Log}}
+              {{template "logEntry" .}}
+            {{else}}
+              <div class="log-entry system">
+                <div class="output">The world is quiet. Type <code>help</code> or <code>look</code>.</div>
+              </div>
+            {{end}}
+          </div>
+          <form
+            class="command"
+            action="/command" method="post"
+            hx-boost="false"
+            hx-post="/command"
+            hx-target="#log"
+            hx-swap="beforeend scroll:bottom"
+            hx-on::after-request="this.reset()">
+
+            <input
+              id="command-input"
+              type="text"
+              name="cmd"
+              placeholder="Type a command…"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
+
+            <button type="submit">Send</button>
+          </form>
+        </main>
+
+        <aside class="sidebar">
+          <h2>Backpack</h2>
+          {{template "inventoryList" .}}
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>
