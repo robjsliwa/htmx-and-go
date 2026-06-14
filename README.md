@@ -12,6 +12,7 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 | 2 | HTMX `hx-boost` for SPA-like navigation | [Adventures in Go and HTMX - Part 2](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-2/) |
 | 3 | Form input, HTMX fragment-swapping, auto-reset, view transitions | [Adventures in Go and HTMX - Part 3](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-3/) |
 | 4 | Inventory system, `hx-delete`, out-of-band swaps (`hx-swap-oob`), modular package refactor | [Adventures in Go and HTMX - Part 4](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-4/) |
+| 5 | Optimistic UI updates, equipment system, `hx-on` lifecycle events, toggle equip/unequip pattern | [Adventures in Go and HTMX - Part 5](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-5/) |
 
 ## Repository Structure
 
@@ -20,7 +21,8 @@ htmx-and-go/
 ├── part1/adv-htmx/    # Part 1 — basic server + Go templates (full page reloads)
 ├── part2/adv-htmx/    # Part 2 — adds hx-boost for smooth navigation
 ├── part3/adv-htmx/    # Part 3 — form input, fragment-swapping, view transitions
-└── part4/adv-htmx/    # Part 4 — inventory system, hx-delete, out-of-band swaps, modular packages
+├── part4/adv-htmx/    # Part 4 — inventory system, hx-delete, out-of-band swaps, modular packages
+└── part5/adv-htmx/    # Part 5 — optimistic UI updates, equipment system, hx-on lifecycle events
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -41,7 +43,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx
 go run .
 ```
 
@@ -51,7 +53,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx
 air
 ```
 
@@ -63,6 +65,9 @@ air
 - **Server-driven state** — no client-side state management; rooms and game state live on the server
 - **`hx-swap-oob`** — out-of-band swaps let a single server response update multiple independent regions of the page
 - **`hx-delete`** — maps HTTP DELETE to HTMX-powered removal of elements without page reloads
+- **Optimistic UI updates** — the browser immediately reflects the expected outcome via `hx-on` lifecycle events (`beforeRequest`, `afterRequest`, `responseError`), then rolls back on server error
+- **`hx-on` lifecycle events** — fine-grained client-side hooks that drive the optimistic pattern without custom JavaScript frameworks
+- **Toggle equip pattern** — a single `ToggleEquip()` endpoint replaces separate equip/unequip routes; the server decides the outcome based on current state
 
 ## License
 
