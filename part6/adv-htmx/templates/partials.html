@@ -1,0 +1,134 @@
+{{define "equipmentPanel"}}
+<div id="equipment-panel" class="equip"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  <div class="equip-slot">
+    <span class="equip-label">Weapon</span>
+    {{if .WeaponOK}}
+      <span class="equip-item">{{.Weapon.Name}}</span>
+    {{else}}
+      <span class="equip-empty">(none)</span>
+    {{end}}
+  </div>
+
+  <div class="equip-slot">
+    <span class="equip-label">Offhand</span>
+    {{if .OffhandOK}}
+      <span class="equip-item">{{.Offhand.Name}}</span>
+    {{else}}
+      <span class="equip-empty">(none)</span>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+{{define "inventoryList"}}
+<ul id="inventory-list" class="inv-list"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  {{- range .Inventory -}}
+    {{- $isWeapon := eq .ID $.WeaponID -}}
+    {{- $isOffhand := eq .ID $.OffhandID -}}
+    {{- $isEquipped := or $isWeapon $isOffhand -}}
+
+    <li
+      id="inv-item-{{.ID}}"
+      class="inv-item{{if $isEquipped}} equipped{{end}}"
+      data-slot="{{.Slot}}">
+
+      <span class="item-name">{{.Name}}</span>
+
+      <div class="inv-actions">
+        {{if ne .Slot ""}}
+          <form
+            class="inline equip-form"
+            action="/equip/{{.ID}}" method="post"
+            hx-boost="false"
+            hx-post="/equip/{{.ID}}"
+            hx-target="#log"
+            hx-swap="beforeend scroll:bottom"
+            hx-on::before-request="equipOptimistic(this)"
+            hx-on::after-request="if(event.detail.successful) equipCommit(this)"
+            hx-on::response-error="equipRollback(this)"
+            hx-on::send-error="equipRollback(this)">
+            <button type="submit" class="mini mini-equip">
+              {{if $isEquipped}}Unequip{{else}}Equip{{end}}
+            </button>
+          </form>
+        {{end}}
+
+        <form
+          class="inline"
+          action="/drop/{{.ID}}" method="post"
+          hx-boost="false"
+          hx-delete="/inventory/{{.ID}}"
+          hx-trigger="submit"
+          hx-target="closest li"
+          hx-swap="outerHTML">
+          <button type="submit" class="mini">Drop</button>
+        </form>
+      </div>
+    </li>
+  {{- end -}}
+</ul>
+{{end}}
+
+{{define "roomItemsList"}}
+<ul id="room-items-list" class="items-list"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  {{- range .ItemsHere -}}
+    <li class="room-item">
+      <span class="item-name">{{.Name}}</span>
+      <form
+        class="inline"
+        action="/take/{{.ID}}" method="post"
+        hx-boost="false"
+        hx-post="/take/{{.ID}}"
+        hx-target="#log"
+        hx-swap="beforeend scroll:bottom">
+        <button type="submit" class="mini">Take</button>
+      </form>
+    </li>
+  {{- end -}}
+</ul>
+{{end}}
+
+{{define "spellList"}}
+  {{range .Results}}
+    <div class="spell-row">
+      <div class="spell-info">
+        <span class="spell-name">{{.Name}}</span>
+        <span class="spell-cost">{{.Cost}} MP</span>
+      </div>
+      <div class="spell-desc">{{.Description}}</div>
+    </div>
+  {{end}}
+{{end}}
+
+{{define "spellbookModal"}}
+<dialog id="spellbook-modal" class="modal">
+  <div class="modal-header">
+    <h2>Grimoire</h2>
+    <form method="dialog">
+      <button class="close-btn">×</button>
+    </form>
+  </div>
+  
+  <div class="modal-body">
+    <div class="search-control">
+      <input 
+        type="search" 
+        name="search" 
+        placeholder="Type to search spells..." 
+        autocomplete="off"
+        autofocus
+        hx-post="/search-spells"
+        hx-trigger="input changed delay:500ms, search"
+        hx-target="#search-results"
+        hx-swap="innerHTML"
+        hx-indicator=".search-loader"
+      >
+      <div class="search-loader htmx-indicator">✨</div>
+    </div>
+
+    <div id="search-results" class="search-results">
+       <div class="search-hint">Enter a search term to find spells.</div>
+    </div>
+  </div>
+</dialog>
+{{end}}

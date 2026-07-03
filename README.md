@@ -13,6 +13,7 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 | 3 | Form input, HTMX fragment-swapping, auto-reset, view transitions | [Adventures in Go and HTMX - Part 3](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-3/) |
 | 4 | Inventory system, `hx-delete`, out-of-band swaps (`hx-swap-oob`), modular package refactor | [Adventures in Go and HTMX - Part 4](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-4/) |
 | 5 | Optimistic UI updates, equipment system, `hx-on` lifecycle events, toggle equip/unequip pattern | [Adventures in Go and HTMX - Part 5](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-5/) |
+| 6 | Active search spellbook, debounced `hx-trigger`, server-side filtering, `<dialog>` modal, loading indicators | [Adventures in Go and HTMX - Part 6](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-6/) |
 
 ## Repository Structure
 
@@ -22,7 +23,8 @@ htmx-and-go/
 ├── part2/adv-htmx/    # Part 2 — adds hx-boost for smooth navigation
 ├── part3/adv-htmx/    # Part 3 — form input, fragment-swapping, view transitions
 ├── part4/adv-htmx/    # Part 4 — inventory system, hx-delete, out-of-band swaps, modular packages
-└── part5/adv-htmx/    # Part 5 — optimistic UI updates, equipment system, hx-on lifecycle events
+├── part5/adv-htmx/    # Part 5 — optimistic UI updates, equipment system, hx-on lifecycle events
+└── part6/adv-htmx/    # Part 6 — active search spellbook, debounced hx-trigger, dialog modal
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -43,7 +45,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx
 go run .
 ```
 
@@ -53,7 +55,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx
 air
 ```
 
@@ -68,6 +70,9 @@ air
 - **Optimistic UI updates** — the browser immediately reflects the expected outcome via `hx-on` lifecycle events (`beforeRequest`, `afterRequest`, `responseError`), then rolls back on server error
 - **`hx-on` lifecycle events** — fine-grained client-side hooks that drive the optimistic pattern without custom JavaScript frameworks
 - **Toggle equip pattern** — a single `ToggleEquip()` endpoint replaces separate equip/unequip routes; the server decides the outcome based on current state
+- **Active search** — a debounced `hx-trigger="input changed delay:500ms, search"` sends server-side queries only after typing pauses, returning filtered HTML fragments instead of JSON
+- **`<dialog>` modal** — the native HTML dialog element powers the spellbook UI with built-in overlay and focus management
+- **`htmx-request` loading indicators** — HTMX automatically toggles this class during in-flight requests, enabling CSS-only loading spinners
 
 ## License
 
