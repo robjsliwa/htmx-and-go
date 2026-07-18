@@ -14,6 +14,7 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 | 4 | Inventory system, `hx-delete`, out-of-band swaps (`hx-swap-oob`), modular package refactor | [Adventures in Go and HTMX - Part 4](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-4/) |
 | 5 | Optimistic UI updates, equipment system, `hx-on` lifecycle events, toggle equip/unequip pattern | [Adventures in Go and HTMX - Part 5](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-5/) |
 | 6 | Active search spellbook, debounced `hx-trigger`, server-side filtering, `<dialog>` modal, loading indicators | [Adventures in Go and HTMX - Part 6](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-6/) |
+| 7 | Lazy loading room images, infinite scroll game log, `hx-trigger="intersect once"` | [Adventures in Go and HTMX - Part 7](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-7/) |
 
 ## Repository Structure
 
@@ -24,7 +25,8 @@ htmx-and-go/
 ├── part3/adv-htmx/    # Part 3 — form input, fragment-swapping, view transitions
 ├── part4/adv-htmx/    # Part 4 — inventory system, hx-delete, out-of-band swaps, modular packages
 ├── part5/adv-htmx/    # Part 5 — optimistic UI updates, equipment system, hx-on lifecycle events
-└── part6/adv-htmx/    # Part 6 — active search spellbook, debounced hx-trigger, dialog modal
+├── part6/adv-htmx/    # Part 6 — active search spellbook, debounced hx-trigger, dialog modal
+└── part7/adv-htmx/    # Part 7 — lazy-loaded room images, infinite scroll game log via intersect
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -45,7 +47,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx
 go run .
 ```
 
@@ -55,7 +57,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx
 air
 ```
 
@@ -73,6 +75,8 @@ air
 - **Active search** — a debounced `hx-trigger="input changed delay:500ms, search"` sends server-side queries only after typing pauses, returning filtered HTML fragments instead of JSON
 - **`<dialog>` modal** — the native HTML dialog element powers the spellbook UI with built-in overlay and focus management
 - **`htmx-request` loading indicators** — HTMX automatically toggles this class during in-flight requests, enabling CSS-only loading spinners
+- **Lazy loading** — the room image is deferred behind `hx-trigger="load"`, fetched only after the page renders so a skeleton placeholder shows first and the initial page stays fast
+- **Infinite scroll** — a sentinel element at the top of the game log uses HTMX's built-in `hx-trigger="intersect once"` to fire when it scrolls into view, fetching the next page of older log entries and replacing itself with a new sentinel until history runs out
 
 ## License
 
