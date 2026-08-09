@@ -1,0 +1,47 @@
+package game
+
+import "time"
+
+type Exit struct {
+	Label string
+	To    string
+}
+
+type Room struct {
+	ID          string
+	Name        string
+	Description string
+	Image       string
+	X, Y        int       // Grid coordinates: X (East/West), Y (North/South)
+	Exits       []Exit
+}
+
+type Slot string
+
+const (
+	SlotNone    Slot = ""
+	SlotWeapon  Slot = "weapon"
+	SlotOffhand Slot = "offhand"
+)
+
+type Item struct {
+	ID          string
+	Name        string
+	Description string
+	Slot        Slot
+}
+
+type LogEntry struct {
+	Turn    int
+	At      time.Time
+	Command string
+	Output  string
+	Kind    string // "system", "error", etc.
+}
+
+type Spell struct {
+	ID          string
+	Name        string
+	Description string
+	Cost        int // Mana cost
+}

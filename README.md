@@ -15,6 +15,7 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 | 5 | Optimistic UI updates, equipment system, `hx-on` lifecycle events, toggle equip/unequip pattern | [Adventures in Go and HTMX - Part 5](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-5/) |
 | 6 | Active search spellbook, debounced `hx-trigger`, server-side filtering, `<dialog>` modal, loading indicators | [Adventures in Go and HTMX - Part 6](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-6/) |
 | 7 | Lazy loading room images, infinite scroll game log, `hx-trigger="intersect once"` | [Adventures in Go and HTMX - Part 7](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-7/) |
+| 8 | Server-generated SVG world map, polling with `hx-trigger="every 2s"`, wandering monster AI, `HX-Trigger` response header cascading updates | [Adventures in Go and HTMX - Part 8](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-8/) |
 
 ## Repository Structure
 
@@ -26,7 +27,8 @@ htmx-and-go/
 ├── part4/adv-htmx/    # Part 4 — inventory system, hx-delete, out-of-band swaps, modular packages
 ├── part5/adv-htmx/    # Part 5 — optimistic UI updates, equipment system, hx-on lifecycle events
 ├── part6/adv-htmx/    # Part 6 — active search spellbook, debounced hx-trigger, dialog modal
-└── part7/adv-htmx/    # Part 7 — lazy-loaded room images, infinite scroll game log via intersect
+├── part7/adv-htmx/    # Part 7 — lazy-loaded room images, infinite scroll game log via intersect
+└── part8/adv-htmx/    # Part 8 — server-generated SVG world map, polling, wandering monster AI
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -47,7 +49,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx, part8/adv-htmx
 go run .
 ```
 
@@ -57,7 +59,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx, part8/adv-htmx
 air
 ```
 
@@ -77,6 +79,10 @@ air
 - **`htmx-request` loading indicators** — HTMX automatically toggles this class during in-flight requests, enabling CSS-only loading spinners
 - **Lazy loading** — the room image is deferred behind `hx-trigger="load"`, fetched only after the page renders so a skeleton placeholder shows first and the initial page stays fast
 - **Infinite scroll** — a sentinel element at the top of the game log uses HTMX's built-in `hx-trigger="intersect once"` to fire when it scrolls into view, fetching the next page of older log entries and replacing itself with a new sentinel until history runs out
+- **Server-generated SVG maps** — the world map is rendered server-side as an SVG string and swapped into the DOM, avoiding bitmap image assets entirely
+- **Polling with `hx-trigger="every 2s"`** — the map polls the server on a fixed interval to simulate a "living world" without WebSockets or background goroutines
+- **Monster AI** — a wandering goblin moves between rooms based on probability logic evaluated on each poll cycle, with its position tracked in the server-side game state
+- **`HX-Trigger` response headers** — the server signals client-side events via response headers, letting one request (e.g. the map poll) cascade updates to other page regions (e.g. the game log) without extra round trips
 
 ## License
 

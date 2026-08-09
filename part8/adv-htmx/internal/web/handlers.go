@@ -1,0 +1,417 @@
+package web
+
+import (
+	"fmt"
+	"html/template"
+	"net/http"
+
+	"github.com/robjsliwa/adv-htmx/internal/game"
+)
+
+type Server struct {
+	Rooms    map[string]game.Room
+	Sessions *game.SessionStore
+	Tmpl     *template.Template
+}
+
+type RoomPageData struct {
+	Room game.Room
+	Log  []game.LogEntry
+
+	Inventory []game.Item
+	ItemsHere []game.Item
+
+	WeaponID  string
+	OffhandID string
+
+	Weapon   game.Item
+	WeaponOK bool
+	Offhand  game.Item
+	OffhandOK bool
+
+	OOB bool
+}
+
+type ListPartialData struct {
+	OOB bool
+
+	Inventory []game.Item
+	ItemsHere []game.Item
+
+	WeaponID  string
+	OffhandID string
+
+	Weapon   game.Item
+	WeaponOK bool
+	Offhand  game.Item
+	OffhandOK bool
+}
+
+type SpellListPartial struct {
+	Results []game.Spell
+}
+
+func (s *Server) Routes() http.Handler {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /", s.handleIndex)
+	mux.HandleFunc("GET /room/{id}", s.handleRoom)
+	mux.HandleFunc("POST /command", s.handleCommand)
+
+	mux.HandleFunc("POST /take/{id}", s.handleTake)
+
+	mux.HandleFunc("DELETE /inventory/{id}", s.handleInventoryDelete)
+	mux.HandleFunc("POST /drop/{id}", s.handleDropFallback)
+
+	mux.HandleFunc("POST /equip/{id}", s.handleEquip)
+
+	mux.HandleFunc("POST /search-spells", s.handleSearchSpells)
+
+	mux.HandleFunc("GET /room/{id}/image", s.handleRoomImage)
+
+	mux.HandleFunc("GET /log-history", s.handleLogHistory)
+
+	mux.HandleFunc("GET /map", s.handleMap)
+
+	return mux
+}
+
+func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/room/hallway", http.StatusFound)
+}
+
+func (s *Server) handleRoom(w http.ResponseWriter, r *http.Request) {
+	roomID := r.PathValue("id")
+	room, ok := s.Rooms[roomID]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	state := s.Sessions.Get(w, r)
+	state.SetRoom(roomID)
+	snap := state.Snapshot()
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = s.Tmpl.ExecuteTemplate(w, "room.html", RoomPageData{
+		Room:      room,
+		Log:       snap.Log,
+		Inventory: snap.Inventory,
+		ItemsHere: snap.ItemsHere,
+
+		WeaponID:  snap.WeaponID,
+		OffhandID: snap.OffhandID,
+
+		Weapon:    snap.Weapon,
+		WeaponOK:  snap.WeaponOK,
+		Offhand:   snap.Offhand,
+		OffhandOK: snap.OffhandOK,
+	})
+}
+
+func (s *Server) handleCommand(w http.ResponseWriter, r *http.Request) {
+	state := s.Sessions.Get(w, r)
+	snap := state.Snapshot()
+
+	cmd := r.FormValue("cmd")
+	output, kind := game.InterpretCommand(s.Rooms, snap.RoomID, cmd)
+	entry := state.Append(cmd, output, kind)
+
+	if IsHTMX(r) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Add("Vary", "HX-Request")
+		_ = s.Tmpl.ExecuteTemplate(w, "logEntry", entry)
+		return
+	}
+
+	http.Redirect(w, r, "/room/"+snap.RoomID, http.StatusSeeOther)
+}
+
+func (s *Server) handleTake(w http.ResponseWriter, r *http.Request) {
+	state := s.Sessions.Get(w, r)
+	before := state.Snapshot()
+
+	itemID := r.PathValue("id")
+	it, ok := state.Take(itemID)
+
+	var entry game.LogEntry
+	if ok {
+		entry = state.Append(
+			"take "+itemID,
+			fmt.Sprintf("You take the %s and tuck it into your backpack.", it.Name),
+			"system",
+		)
+	} else {
+		entry = state.Append(
+			"take "+itemID,
+			"You reach for it, but your hand closes on air.",
+			"error",
+		)
+	}
+
+	if !IsHTMX(r) {
+		http.Redirect(w, r, "/room/"+before.RoomID, http.StatusSeeOther)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Add("Vary", "HX-Request")
+
+	// Main swap: append to #log (because the form targeted #log).
+	if err := s.Tmpl.ExecuteTemplate(w, "logEntry", entry); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// OOB swaps: refresh both lists.
+	after := state.Snapshot()
+
+	_ = s.Tmpl.ExecuteTemplate(w, "inventoryList", ListPartialData{
+		OOB:       true,
+		Inventory: after.Inventory,
+	})
+
+	_ = s.Tmpl.ExecuteTemplate(w, "roomItemsList", ListPartialData{
+		OOB:       true,
+		ItemsHere: after.ItemsHere,
+	})
+}
+
+func (s *Server) handleInventoryDelete(w http.ResponseWriter, r *http.Request) {
+	state := s.Sessions.Get(w, r)
+
+	itemID := r.PathValue("id")
+	it, ok := state.Drop(itemID)
+
+	if !ok {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	entry := state.Append(
+		"drop "+itemID,
+		fmt.Sprintf("You drop the %s. It lands with the dignity of a potato.", it.Name),
+		"system",
+	)
+
+	if !IsHTMX(r) {
+		snap := state.Snapshot()
+		http.Redirect(w, r, "/room/"+snap.RoomID, http.StatusSeeOther)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Add("Vary", "HX-Request")
+
+	// OOB: append to log
+	_ = s.Tmpl.ExecuteTemplate(w, "logEntryOOB", entry)
+
+	// OOB: refresh "Items Here"
+	after := state.Snapshot()
+	_ = s.Tmpl.ExecuteTemplate(w, "roomItemsList", ListPartialData{
+		OOB:       true,
+		ItemsHere: after.ItemsHere,
+	})
+
+	_ = s.Tmpl.ExecuteTemplate(w, "equipmentPanel", ListPartialData{
+		OOB: true,
+
+		WeaponID:  after.WeaponID,
+		OffhandID: after.OffhandID,
+
+		Weapon:    after.Weapon,
+		WeaponOK:  after.WeaponOK,
+		Offhand:   after.Offhand,
+		OffhandOK: after.OffhandOK,
+	})
+}
+
+func (s *Server) handleDropFallback(w http.ResponseWriter, r *http.Request) {
+	state := s.Sessions.Get(w, r)
+	snap := state.Snapshot()
+
+	itemID := r.PathValue("id")
+	it, ok := state.Drop(itemID)
+	if ok {
+		state.Append(
+			"drop "+itemID,
+			fmt.Sprintf("You drop the %s. The dungeon accepts your offering.", it.Name),
+			"system",
+		)
+	}
+
+	http.Redirect(w, r, "/room/"+snap.RoomID, http.StatusSeeOther)
+}
+
+func (s *Server) handleEquip(w http.ResponseWriter, r *http.Request) {
+	state := s.Sessions.Get(w, r)
+	before := state.Snapshot()
+
+	itemID := r.PathValue("id")
+
+	res, err := state.ToggleEquip(itemID)
+
+	var entry game.LogEntry
+	if err != nil {
+		entry = state.Append(
+			"equip "+itemID,
+			"You fumble with your gear. ("+err.Error()+")",
+			"error",
+		)
+	} else {
+		if res.Equipped {
+			msg := fmt.Sprintf("You equip the %s.", res.Item.Name)
+			if res.ReplacedOK {
+				msg = fmt.Sprintf("You equip the %s, putting away the %s.", res.Item.Name, res.Replaced.Name)
+			}
+			entry = state.Append("equip "+itemID, msg, "system")
+		} else {
+			entry = state.Append("unequip "+itemID, fmt.Sprintf("You unequip the %s.", res.Item.Name), "system")
+		}
+	}
+
+	if !IsHTMX(r) {
+		http.Redirect(w, r, "/room/"+before.RoomID, http.StatusSeeOther)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Add("Vary", "HX-Request")
+
+	// Main swap: append to #log.
+	if err := s.Tmpl.ExecuteTemplate(w, "logEntry", entry); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// OOB swap: update the equipment panel.
+	after := state.Snapshot()
+	_ = s.Tmpl.ExecuteTemplate(w, "equipmentPanel", ListPartialData{
+		OOB: true,
+
+		WeaponID:  after.WeaponID,
+		OffhandID: after.OffhandID,
+
+		Weapon:    after.Weapon,
+		WeaponOK:  after.WeaponOK,
+		Offhand:   after.Offhand,
+		OffhandOK: after.OffhandOK,
+	})
+}
+
+func (s *Server) handleSearchSpells(w http.ResponseWriter, r *http.Request) {
+	// Simulate a tiny bit of database latency so we can feel the UI state later
+	// time.Sleep(200 * time.Millisecond) 
+
+	query := r.FormValue("search")
+	results := game.SearchSpells(query)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	
+	// If no results and we have a query, tell the user
+	if len(results) == 0 && query != "" {
+		fmt.Fprint(w, `<div class="search-empty">No spells found matching that incantation.</div>`)
+		return
+	}
+
+	// Render the list
+	if err := s.Tmpl.ExecuteTemplate(w, "spellList", SpellListPartial{Results: results}); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleRoomImage(w http.ResponseWriter, r *http.Request) {
+	// Artificial delay so you can perceive the "lazy" loading effect on localhost
+	// time.Sleep(500 * time.Millisecond)
+
+	roomID := r.PathValue("id")
+	room, ok := s.Rooms[roomID]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	if room.Image == "" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	// We return the img tag directly. 
+    // In a bigger app, you might use a small template fragment.
+	html := fmt.Sprintf(`<img src="%s" alt="%s" class="room-image fade-in">`, room.Image, room.Name)
+	
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, html)
+}
+
+func (s *Server) handleLogHistory(w http.ResponseWriter, r *http.Request) {
+    state := s.Sessions.Get(w, r)
+    
+    // Parse "before" param
+    var beforeTurn int
+    fmt.Sscanf(r.URL.Query().Get("before"), "%d", &beforeTurn)
+    
+    // Fetch 20 older entries
+    entries, earliestTurn := state.GetLogPage(beforeTurn, 20)
+    
+    if len(entries) == 0 {
+        w.WriteHeader(http.StatusNoContent)
+        return
+    }
+
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+    // If there is still more history before this page, we need to put the sensor back at the top.
+    // If earliestTurn is 1, we are at the beginning of time.
+    if earliestTurn > 1 {
+        fmt.Fprintf(w, 
+            `<div hx-get="/log-history?before=%d" 
+                  hx-trigger="intersect once" 
+                  hx-swap="outerHTML" 
+                  class="log-sensor">Loading history...</div>`, 
+            earliestTurn,
+        )
+    }
+    
+    // Render the entries
+    for _, entry := range entries {
+        if err := s.Tmpl.ExecuteTemplate(w, "logEntry", entry); err != nil {
+            continue
+        }
+    }
+}
+
+func (s *Server) handleMap(w http.ResponseWriter, r *http.Request) {
+	state := s.Sessions.Get(w, r)
+
+	state.MarkVisited(state.RoomID)
+
+	wasWithPlayer := (state.Goblin.RoomID == state.RoomID)
+
+    // The World Moves
+    state.MoveGoblin(s.Rooms)
+
+    // Narrative Logic: Did the goblin just arrive?
+    isWithPlayer := (state.Goblin.RoomID == state.RoomID)
+	
+	// Generate the SVG string using our new Go function
+	svgContent := RenderMap(state.RoomID, state.Visited, s.Rooms, state.Goblin.RoomID)
+	
+	// Tell the browser this is an image/svg, not just plain text
+	w.Header().Set("Content-Type", "image/svg+xml")
+
+	if isWithPlayer && !wasWithPlayer {
+        // The goblin just walked into your room! 
+        // We manually add an entry to the game log.
+        state.AddLogEntry(fmt.Sprintf("You hear a guttural growl. %s the Goblin has arrived.", state.Goblin.Name), "system")
+        
+        // Signal the UI to refresh the log
+        w.Header().Set("HX-Trigger", "goblin-nearby")
+    }
+
+	fmt.Fprint(w, svgContent)
+}

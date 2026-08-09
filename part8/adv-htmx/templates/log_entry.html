@@ -1,0 +1,8 @@
+{{define "logEntry"}}
+  <div class="log-entry {{.Kind}}">
+    {{if .Command}}
+      <div class="prompt">&gt; {{.Command}}</div>
+    {{end}}
+    <div class="output">{{.Output}}</div>
+  </div>
+{{end}}
