@@ -16,6 +16,7 @@ The series builds a retro terminal-style text adventure game step-by-step, using
 | 6 | Active search spellbook, debounced `hx-trigger`, server-side filtering, `<dialog>` modal, loading indicators | [Adventures in Go and HTMX - Part 6](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-6/) |
 | 7 | Lazy loading room images, infinite scroll game log, `hx-trigger="intersect once"` | [Adventures in Go and HTMX - Part 7](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-7/) |
 | 8 | Server-generated SVG world map, polling with `hx-trigger="every 2s"`, wandering monster AI, `HX-Trigger` response header cascading updates | [Adventures in Go and HTMX - Part 8](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-8/) |
+| 9 | Data-driven world design with YAML, struct tags, fail-fast startup validation, map-based room exits | [Adventures in Go and HTMX - Part 9](https://www.shiftleftai.dev/posts/adventures-in-go-htmx-9/) |
 
 ## Repository Structure
 
@@ -28,7 +29,8 @@ htmx-and-go/
 ├── part5/adv-htmx/    # Part 5 — optimistic UI updates, equipment system, hx-on lifecycle events
 ├── part6/adv-htmx/    # Part 6 — active search spellbook, debounced hx-trigger, dialog modal
 ├── part7/adv-htmx/    # Part 7 — lazy-loaded room images, infinite scroll game log via intersect
-└── part8/adv-htmx/    # Part 8 — server-generated SVG world map, polling, wandering monster AI
+├── part8/adv-htmx/    # Part 8 — server-generated SVG world map, polling, wandering monster AI
+└── part9/adv-htmx/    # Part 9 — data-driven world via YAML, struct tags, fail-fast validation
 ```
 
 Each part is a standalone Go module you can run independently.
@@ -49,7 +51,7 @@ Each part is a standalone Go module you can run independently.
 ### Run a Part
 
 ```bash
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx, part8/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx, part8/adv-htmx, part9/adv-htmx
 go run .
 ```
 
@@ -59,7 +61,7 @@ Open [http://localhost:4040](http://localhost:4040) in your browser.
 
 ```bash
 go install github.com/air-verse/air@latest
-cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx, part8/adv-htmx
+cd part1/adv-htmx   # or part2/adv-htmx, part3/adv-htmx, part4/adv-htmx, part5/adv-htmx, part6/adv-htmx, part7/adv-htmx, part8/adv-htmx, part9/adv-htmx
 air
 ```
 
@@ -83,6 +85,10 @@ air
 - **Polling with `hx-trigger="every 2s"`** — the map polls the server on a fixed interval to simulate a "living world" without WebSockets or background goroutines
 - **Monster AI** — a wandering goblin moves between rooms based on probability logic evaluated on each poll cycle, with its position tracked in the server-side game state
 - **`HX-Trigger` response headers** — the server signals client-side events via response headers, letting one request (e.g. the map poll) cascade updates to other page regions (e.g. the game log) without extra round trips
+- **Data-driven world design** — the game world moves from hardcoded Go data into `world.yaml`, letting level designers edit rooms and items without recompiling
+- **YAML struct tags** — Go structs use `yaml:"..."` tags to map lowercase YAML keys onto exported Go fields
+- **Fail-fast validation** — a startup validation pass checks referential integrity (e.g. room exits point to real rooms, items exist) and aborts with a descriptive error before the server starts if the data is invalid
+- **Map-based room exits** — exits move from a structured list to `map[string]string`, simplifying data entry and requiring updated movement logic and template iteration
 
 ## License
 

@@ -1,0 +1,61 @@
+title: "Adventures in HTMX"
+start_room: "hallway"
+
+rooms:
+  - id: "hallway"
+    name: "The Hallway"
+    description: "You are standing in a dimly lit hallway. Dust motes dance in the air."
+    image: "https://placehold.co/600x200/2a2a2a/33ff00?text=THE+HALLWAY&font=roboto"
+    x: 0
+    y: 0
+    exits:
+      north: "atrium"
+      east: "basement"
+    items:
+      - "lamp"
+      - "key"
+
+  - id: "atrium"
+    name: "The Grand Atrium"
+    description: "You step into a grand atrium. The ceiling is glass, revealing a grey, indifferent sky."
+    image: "https://placehold.co/600x200/2a2a2a/c5a059?text=THE+ATRIUM&font=roboto"
+    x: 0
+    y: 1
+    exits:
+      south: "hallway"
+    items:
+      - "sword"
+      - "shield"
+      - "coin"
+
+  - id: "basement"
+    name: "The Basement"
+    description: "It is dark here. The smell of mold is overpowering."
+    image: "https://placehold.co/600x200/2a2a2a/ff3333?text=THE+BASEMENT&font=roboto"
+    x: 1
+    y: 0
+    exits:
+      west: "hallway"
+
+items:
+  - id: "lamp"
+    name: "Brass Lamp"
+    description: "A heavy brass lamp. It feels warm."
+    
+  - id: "key"
+    name: "Rusty Key"
+    description: "It looks like it opens something important."
+
+  - id: "coin"
+    name: "Ancient Coin"
+    description: "A coin stamped with a face you don't recognize."
+
+  - id: "sword"
+    name: "Iron Sword"
+    description: "A rusty blade. Better than nothing."
+    slot: "weapon"
+
+  - id: "shield"
+    name: "Kite Shield"
+    description: "A large wooden shield."
+    slot: "offhand"
